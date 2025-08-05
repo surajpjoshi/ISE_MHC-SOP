@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AAA + RADIUS + TACACS+ Configuration</title>
+    <style>
+        body { font-family: monospace; background-color: #f4f4f4; padding: 20px; }
+        pre { background: #fff; padding: 20px; border: 1px solid #ccc; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>AAA + RADIUS + TACACS+ Configuration</h1>
+    <pre>
+<!-- Paste your full configuration content here -->
+
+
+### ✅ Reference:
+
+* **Primary ISE (RADIUS + TACACS+)**: `192.168.100.210`
+* **Secondary ISE**: `192.168.100.220`
+* **Shared RADIUS/TACACS+ key**: `Test123`
+* **MGMT VLAN**: `100`
+* **Source Interface for AAA**: `vlan100` (IP: 192.168.100.254)
+
+---
+
+### ✅ Final Arranged AAA + RADIUS + TACACS+ Configuration:
+
+
+aaa new-model
+ip http server
+ip http max-connections 16
+ip http secure-server
+
+! ---------- TACACS+ Servers ----------
+
+tacacs server ISE1-TACACS
+ address ipv4 192.168.100.210
+ key Test123
+ timeout 4
+!
+tacacs server ISE2-TACACS
+ address ipv4 192.168.100.220
+ key Test123
+ timeout 4
+!
+aaa group server tacacs+ ISE-TACACS-GROUP
+ server name ISE1-TACACS
+ server name ISE2-TACACS
+!
+
+! ---------- RADIUS Servers ----------
+
+radius server ISE1-RADIUS
+ address ipv4 192.168.100.210 auth-port 1812 acct-port 1813
+ key Test123
+ retransmit 3
+ timeout 4
+ automate-tester username dummy ignore-acct-port probe-on
+!
+radius server ISE2-RADIUS
+ address ipv4 192.168.100.220 auth-port 1812 acct-port 1813
+ key Test123
+ retransmit 3
+ timeout 4
+ automate-tester username dummy ignore-acct-port probe-on
+!
+aaa group server radius ISE-RADIUS-GROUP
+ server name ISE1-RADIUS
+ server name ISE2-RADIUS
+ ip radius source-interface vlan100
+!
+
+! ---------- Dynamic Authorization Clients  ----------
+
+aaa server radius dynamic-author
+ client 192.168.100.210 server-key Test123
+ client 192.168.100.220 server-key Test123
+!
+
+! ---------- Source Interface for AAA ----------
+
+ip tacacs source-interface vlan100
+ip radius source-interface vlan100
+
+! ---------- Accounting ----------
+
+aaa accounting dot1x default start-stop group ISE-RADIUS-GROUP
+aaa accounting identity default start-stop group ISE-RADIUS-GROUP
+aaa accounting update newinfo periodic 2880
+aaa accounting exec default start-stop group ISE-TACACS-GROUP
+
+! ---------- Authorization ----------
+
+aaa authorization exec default local
+aaa authorization network default group ISE-RADIUS-GROUP
+aaa authorization exec VTY_author group ISE-TACACS-GROUP local if-authenticated
+
+! ---------- Authentication ----------
+
+aaa authentication login default local
+aaa authentication dot1x default group ISE-RADIUS-GROUP
+aaa authentication login VTY_authen group ISE-TACACS-GROUP local
+
+! ---------- Other Required Settings ----------
+
+aaa session-id common
+dot1x system-auth-control
+
+! ---------- RADIUS Attributes ----------
+
+radius-server vsa send authentication
+radius-server vsa send accounting
+radius-server dead-criteria time 5 tries 3
+radius-server deadtime 3
+radius-server attribute 31 send nas-port-detail mac-only
+radius-server attribute 31 mac format ietf upper-case
+radius-server attribute 25 access-request include
+radius-server attribute 8 include-in-access-req
+radius-server attribute 6 on-for-login-auth
+radius-server attribute 6 support-multiple
+
+
+! ---------- VTY Line Access Control ----------
+
+line vty 0 15
+ login authentication VTY_authen
+ authorization exec VTY_author
+
+
+
+...
+<!-- Truncated for brevity -->
+    </pre>
+</body>
+</html>
