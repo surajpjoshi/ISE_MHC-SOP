@@ -85,7 +85,6 @@ ip radius source-interface vlan100
 
 ! ---------- Accounting ----------
 
-aaa accounting dot1x default start-stop group ISE-RADIUS-GROUP
 aaa accounting identity default start-stop group ISE-RADIUS-GROUP
 aaa accounting update newinfo periodic 2880
 aaa accounting exec default start-stop group ISE-TACACS-GROUP
@@ -134,3 +133,4 @@ line vty 0 15
     </pre>
 </body>
 </html>
+
